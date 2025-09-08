@@ -1,0 +1,25 @@
+/bot_trading_project
+├── .env                  # Contiene le tue API keys e altre variabili sensibili (NON VA MAI COMMITTATO SU GIT)
+├── main.py               # Punto di ingresso del bot, avvia il motore di trading.
+├── requirements.txt      # Elenco delle dipendenze Python del progetto.
+├── README.md             # Descrizione del progetto, istruzioni per l'installazione e l'esecuzione.
+├── /config
+│   └── settings.py       # Configurazione generale del bot (simboli, timeframe, parametri globali).
+├── /data
+│   ├── data_manager.py   # Modulo per recuperare e gestire i dati di mercato (storici e in tempo reale).
+│   └── storage.py        # (Opzionale) Per salvare dati storici localmente o risultati di backtest.
+├── /strategy
+│   ├── base_strategy.py  # Classe base astratta per le strategie.
+│   ├── example_strategy.py # Esempio di strategia di trading.
+│   └── __init__.py       # Inizializzatore del modulo strategy.
+├── /trading
+│   ├── broker_connector.py # Modulo per gestire la connessione e l'interazione con l'API del broker.
+│   ├── order_manager.py  # Gestisce l'invio, la modifica e la cancellazione degli ordini.
+│   ├── position_manager.py # Gestisce le posizioni aperte e chiuse.
+│   └── risk_manager.py   # Implementa le regole di gestione del rischio (stop loss, take profit, size).
+├── /utils
+│   ├── logger.py         # Modulo per il logging unificato.
+│   └── helpers.py        # Funzioni di utilità generiche (calcoli tecnici, formattazione).
+└── /tests                # (Opzionale ma consigliato) Per i test unitari e di integrazione.
+    ├── test_strategy.py
+    └── ...
