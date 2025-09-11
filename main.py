@@ -1,5 +1,5 @@
 from scalper_bot.utils.logger import logger
-from scalper_bot.engine import start_bot
+from scalper_bot.trading.broker_connector import BrokerConnector
 import asyncio
 import signal
 import sys
