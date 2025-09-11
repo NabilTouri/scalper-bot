@@ -8,6 +8,7 @@ from alpaca.common.exceptions import APIError
 from ..config.settings import API_KEY_ID, API_SECRET_KEY
 from ..utils.logger import logger
 import pandas as pd
+import asyncio
 
 class BrokerConnector:
     def __init__(self, paper: bool = True):
@@ -26,7 +27,8 @@ class BrokerConnector:
         self.data_stream.subscribe_bars(data_handler, *symbols)
         logger.info("Starting data stream...")
         try:
-            await self.data_stream.run()
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, self.data_stream.run)
         except Exception as e:
             logger.error(f"Error in Alpaca data stream: {e}")
             await self.disconnect_stream()

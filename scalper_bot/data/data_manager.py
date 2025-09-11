@@ -2,9 +2,9 @@
 
 import pandas as pd
 from typing import Dict, List
-from trading.broker_connector import BrokerConnector
-from config.settings import SYMBOLS, TIMEFRAME
-from utils.logger import logger
+from ..trading.broker_connector import BrokerConnector
+from ..config.settings import SYMBOLS, TIMEFRAME
+from ..utils.logger import logger
 
 class DataManager:
     def __init__(self, connector: BrokerConnector):
@@ -16,7 +16,7 @@ class DataManager:
         """Carica i dati storici iniziali per tutti i simboli."""
         logger.info(f"Caricamento {limit} candele storiche a {TIMEFRAME} per {SYMBOLS}...")
         for symbol in SYMBOLS:
-            df = await self.connector.get_historical_bars(symbol, TIMEFRAME, limit=limit)
+            df = self.connector.get_historical_bars(symbol, TIMEFRAME, limit=limit)
             if not df.empty:
                 self.bars[symbol] = df
                 logger.info(f"Caricate {len(df)} candele storiche per {symbol}.")
@@ -33,13 +33,13 @@ class DataManager:
         new_row = pd.DataFrame([{
             'open': bar_data.open,
             'high': bar_data.high,
-            'low': bar_data.data_low, # Usa data_low per compatibilità con l'API
+            'low': bar_data.low, # Usa data_low per compatibilità con l'API
             'close': bar_data.close,
             'volume': bar_data.volume,
             'trade_count': bar_data.trade_count,
             'vwap': bar_data.vwap
-        }], index=[bar_data.timestamp.tz_convert('America/New_York')])
-        
+        }], index=[pd.Timestamp(bar_data.timestamp, tz='UTC').tz_convert('America/New_York')])
+
         # Aggiunge la nuova riga al DataFrame, assicurandosi che non ci siano duplicati sull'indice
         # Questo sovrascrive l'eventuale barra incompleta precedente o aggiunge la nuova
         self.bars[symbol] = pd.concat([self.bars[symbol], new_row[~new_row.index.isin(self.bars[symbol].index)]]).sort_index()

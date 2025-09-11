@@ -1,8 +1,8 @@
 # bot_trading_project/trading/order_manager.py
 
-from trading.broker_connector import BrokerConnector
-from config.settings import TRADE_ENABLED
-from utils.logger import logger
+from ..trading.broker_connector import BrokerConnector
+from ..config.settings import TRADE_ENABLED
+from ..utils.logger import logger
 
 class OrderManager:
     def __init__(self, connector: BrokerConnector):

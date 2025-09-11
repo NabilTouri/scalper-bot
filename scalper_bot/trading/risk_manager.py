@@ -1,26 +1,26 @@
 # bot_trading_project/trading/risk_manager.py
 
 from typing import Optional
-from trading.broker_connector import BrokerConnector
-from trading.position_manager import PositionManager
-from config.settings import (
+from ..trading.broker_connector import BrokerConnector
+from ..trading.position_manager import PositionManager
+from ..config.settings import (
     STOP_LOSS_PERCENT, TAKE_PROFIT_PERCENT, MAX_DAILY_DRAWDOWN_PERCENT,
     QUANTITY_PER_TRADE
 )
-from utils.logger import logger
-from alpaca_trade_api.rest import Account, Position
+from ..utils.logger import logger
+from alpaca.trading.models import TradeAccount, Position
 
 class RiskManager:
     def __init__(self, connector: BrokerConnector, position_manager: PositionManager):
         self.connector = connector
         self.position_manager = position_manager
-        self.account: Optional[Account] = None
+        self.account: Optional[TradeAccount] = None
         self.initial_equity: float = 0.0 # Equità all'inizio della giornata di trading
         logger.info("RiskManager inizializzato.")
 
     async def update_account_info(self):
         """Aggiorna le informazioni del conto e imposta l'equità iniziale."""
-        self.account = await self.connector.get_account_info()
+        self.account = self.connector.get_account_info()
         if self.account:
             if self.initial_equity == 0.0: # Imposta solo all'inizio del bot o della giornata
                 self.initial_equity = float(self.account.equity)

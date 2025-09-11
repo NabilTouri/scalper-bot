@@ -1,14 +1,27 @@
-# bot_trading_project/utils/helpers.py
-
 import pandas as pd
-import pandas_ta as ta # Usiamo pandas_ta per semplicità di installazione
 
-# Esempio: Calcola RSI
-def calculate_rsi(df: pd.DataFrame, length: int = 14) -> pd.Series:
-    return ta.rsi(df['close'], length=length)
+def calculate_sma(series: pd.Series, length: int) -> pd.Series:
+    """
+    Calcola la Media Mobile Semplice (SMA).
+    :param series: Serie di pandas (es. prezzi di chiusura).
+    :param length: Periodo della media mobile.
+    :return: Serie di pandas con i valori della SMA.
+    """
+    return series.rolling(window=length).mean()
 
-# Esempio: Calcola Moving Average
-def calculate_sma(df: pd.DataFrame, length: int = 20) -> pd.Series:
-    return ta.sma(df['close'], length=length)
+def calculate_rsi(series: pd.Series, length: int = 14) -> pd.Series:
+    """
+    Calcola il Relative Strength Index (RSI).
+    :param series: Serie di pandas (es. prezzi di chiusura).
+    :param length: Periodo dell'RSI.
+    :return: Serie di pandas con i valori dell'RSI.
+    """
+    delta = series.diff()
+    
+    gain = (delta.where(delta > 0, 0)).rolling(window=length).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=length).mean()
 
-# Aggiungi altre funzioni di utilità o indicatori tecnici qui
+    rs = gain / loss
+    rsi = 100 - (100 / (1 + rs))
+    
+    return rsi

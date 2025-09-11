@@ -2,13 +2,13 @@
 
 import pandas as pd
 from typing import Dict
-from strategy.base_strategy import BaseStrategy
-from trading.broker_connector import BrokerConnector
-from trading.order_manager import OrderManager
-from trading.position_manager import PositionManager
-from trading.risk_manager import RiskManager
-from utils.helpers import calculate_rsi, calculate_sma # Per indicatori tecnici
-from config.settings import SYMBOLS, QUANTITY_PER_TRADE, MAX_POSITIONS
+from ..strategy.base_strategy import BaseStrategy
+from ..trading.broker_connector import BrokerConnector
+from ..trading.order_manager import OrderManager
+from ..trading.position_manager import PositionManager
+from ..trading.risk_manager import RiskManager
+from ..utils.helpers import calculate_rsi, calculate_sma # Per indicatori tecnici
+from ..config.settings import SYMBOLS, QUANTITY_PER_TRADE, MAX_POSITIONS
 
 class ExampleStrategy(BaseStrategy):
     def __init__(self, connector: BrokerConnector, order_manager: OrderManager, 
@@ -63,3 +63,15 @@ class ExampleStrategy(BaseStrategy):
         if prev_close < prev_sma and last_close > last_sma: # Incrocio SMA bullish
             if last_rsi < 70: # Evita ipercomprato
                 signal = 'buy'
+
+        if signal == 'buy' and not self.position_manager.has_position(symbol):
+            if self.position_manager.get_num_open_positions() < MAX_POSITIONS:
+                self.logger.info(f"Segnale di ACQUISTO per {symbol} a {last_close:.2f}")
+
+                # Calcola la dimensione della posizione
+                qty = self.risk_manager.calculate_position_size(last_close)
+
+                # Piazza l'ordine
+                await self.order_manager.place_market_order(symbol, qty, 'buy')
+            else:
+                self.logger.info(f"Segnale di acquisto per {symbol} ignorato. Massimo posizioni ({MAX_POSITIONS}) raggiunto.")
