@@ -1,12 +1,12 @@
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest, LimitOrderRequest, StopLossRequest, TakeProfitRequest
 from alpaca.trading.enums import OrderSide, TimeInForce, OrderType
-from alpaca.data.live import StockDataStream
-from alpaca.data.historical import StockHistoricalDataClient
-from alpaca.data.requests import StockBarsRequest, StockLatestBarRequest
+from alpaca.data.live import CryptoDataStream
+from alpaca.data.historical import CryptoHistoricalDataClient
+from alpaca.data.requests import CryptoBarsRequest, CryptoLatestBarRequest
 from alpaca.data.timeframe import TimeFrame
 from alpaca.common.exceptions import APIError
-from ..config.settings import API_KEY_ID, API_SECRET_KEY
+from ..config.settings import API_KEY_ID, API_SECRET_KEY, SYMBOLS
 from ..utils.logger import logger
 import pandas as pd
 import asyncio
@@ -22,7 +22,7 @@ class BrokerConnector:
         """
         self.trading_client = TradingClient(API_KEY_ID, API_SECRET_KEY, paper=paper)
         self.data_stream = None
-        self.historical_client = StockHistoricalDataClient(API_KEY_ID, API_SECRET_KEY)
+        self.historical_client = CryptoHistoricalDataClient(API_KEY_ID, API_SECRET_KEY)
         self.stream_task = None
         self.is_streaming = False
         self.simulation_task = None
@@ -38,60 +38,29 @@ class BrokerConnector:
             logger.error(f"Error checking market status: {e}")
             return False
 
-    async def connect_stream(self, data_handler, symbols):
+    async def connect_stream(self, data_handler):
         """Connects to the real-time data stream for stocks."""
-        logger.info(f"Subscribing to bars for symbols: {symbols}")
+        if not SYMBOLS:
+            logger.error("No symbols configured for trading.")
+            return
+        logger.info(f"Starting CryptoDataStream for symbols: {SYMBOLS}")
 
-        # Check if market is open
-        market_open = self.is_market_open()
-        logger.info(f"Market is {'OPEN' if market_open else 'CLOSED'}")
 
-        if not market_open:
-            logger.warning("Market is closed. Starting simulation mode with historical data.")
-            self.use_simulation = True
-            await self._start_simulation_mode(data_handler, symbols)
+        self.data_stream = CryptoDataStream(API_KEY_ID, API_SECRET_KEY)
+
+        if hasattr(self.data_stream, "subscribe_bars"):
+            subscribe_fn = self.data_stream.subscribe_bars
+        else:
+            logger.error("CryptoDataStream has no subscribe_bars method.")
             return
 
-        try:
-            # Try multiple feed options
-            feeds_to_try = ['iex', 'sip']  # IEX is free, SIP requires subscription
+        subscribe_fn(data_handler, *SYMBOLS)
 
-            for feed in feeds_to_try:
-                try:
-                    logger.info(f"Trying to connect with {feed} feed...")
-                    self.data_stream = StockDataStream(API_KEY_ID, API_SECRET_KEY, feed=feed)
+        loop = asyncio.get_event_loop()
+        self.stream_task = loop.run_in_executor(None, self.data_stream.run)
+        self.is_streaming = True
+        logger.info("Data stream started successfully")
 
-                    # Test the connection by trying to subscribe
-                    self.data_stream.subscribe_bars(data_handler, *symbols)
-                    logger.info(f"Successfully subscribed to {feed} feed for: {symbols}")
-                    break
-
-                except Exception as e:
-                    logger.warning(f"Failed to connect with {feed} feed: {e}")
-                    self.data_stream = None
-                    continue
-
-            if self.data_stream is None:
-                raise ValueError("Failed to create StockDataStream with any available feed")
-
-            logger.info(f"Data stream object created: {type(self.data_stream)}")
-            logger.info("Starting data stream...")
-            self.is_streaming = True
-
-            # Run the stream in a separate task
-            self.stream_task = asyncio.create_task(self._run_stream())
-
-            # Wait a bit for the stream to establish connection
-            await asyncio.sleep(3)
-
-            logger.info("Data stream started successfully")
-
-        except Exception as e:
-            logger.error(f"Error in Alpaca data stream setup: {e}")
-            logger.info("Falling back to simulation mode...")
-            self.use_simulation = True
-            self.is_streaming = False
-            await self._start_simulation_mode(data_handler, symbols)
 
     async def _start_simulation_mode(self, data_handler, symbols):
         """Start simulation mode using historical data"""
@@ -107,8 +76,8 @@ class BrokerConnector:
             try:
                 for symbol in symbols:
                     # Get the latest bar for each symbol
-                    latest_bar_request = StockLatestBarRequest(symbol_or_symbols=[symbol])
-                    latest_bars = self.historical_client.get_stock_latest_bar(latest_bar_request)
+                    latest_bar_request = CryptoLatestBarRequest(symbol_or_symbols=[symbol])
+                    latest_bars = self.historical_client.get_crypto_latest_bar(latest_bar_request)
 
                     if symbol in latest_bars:
                         bar = latest_bars[symbol]
@@ -160,45 +129,43 @@ class BrokerConnector:
                 # We can't easily restart here, so just log the issue
 
     async def disconnect_stream(self):
-        """Disconnects from the data stream."""
-        logger.info("Disconnecting from data stream...")
-
-        self.is_streaming = False
-
-        # Cancel the simulation task if running
-        if self.simulation_task and not self.simulation_task.done():
-            self.simulation_task.cancel()
+        """Stop & close the stream cleanly."""
+        if self.data_stream:
+            logger.info("Stopping crypto data stream...")
             try:
-                await self.simulation_task
-            except asyncio.CancelledError:
-                logger.info("Simulation task cancelled successfully")
+                # chiedi allo stream di fermarsi
+                try:
+                    self.data_stream.stop()  # metodo sync
+                except Exception:
+                    # alcune versioni possono avere stop_ws / altre API
+                    logger.debug("stop() not available or failed; trying stop_ws/stop methods.")
 
-        # Cancel the stream task if it exists
-        if self.stream_task and not self.stream_task.done():
-            self.stream_task.cancel()
-            try:
-                await self.stream_task
-            except asyncio.CancelledError:
-                logger.info("Stream task cancelled successfully")
+                # aspetta che il task in executor finisca (se esiste)
+                if self.stream_task:
+                    try:
+                        await asyncio.wait_for(self.stream_task, timeout=10.0)
+                    except asyncio.TimeoutError:
+                        logger.warning("Stream task did not finish within timeout after stop().")
 
-        # Close the data stream if it exists
-        if self.data_stream is not None:
-            try:
-                await self.data_stream.close()
-                logger.info("Data stream closed successfully")
+                # chiudi la websocket in modo async se disponibile
+                if hasattr(self.data_stream, "close"):
+                    try:
+                        await self.data_stream.close()
+                    except Exception as e:
+                        logger.debug(f"close() raised: {e}")
+
+                logger.info("Crypto data stream stopped.")
             except Exception as e:
-                logger.error(f"Error closing data stream: {e}")
+                logger.error(f"Error while disconnecting stream: {e}")
 
         self.data_stream = None
         self.stream_task = None
-        self.simulation_task = None
-        self.use_simulation = False
+        self.is_streaming = False
 
     def get_account_info(self):
         """Retrieves account information."""
         try:
             account = self.trading_client.get_account()
-            logger.info(f"Account Info: Status={account.status}, Equity=${account.equity}, Cash=${account.cash}")
             return account
         except APIError as e:
             logger.error(f"Error retrieving account info: {e}")
@@ -206,7 +173,7 @@ class BrokerConnector:
 
     def get_historical_bars(self, symbol: str, timeframe, start=None, end=None, limit=None) -> pd.DataFrame:
         """Retrieves historical bars."""
-        request_params = StockBarsRequest(
+        request_params = CryptoBarsRequest(
             symbol_or_symbols=[symbol],
             timeframe=timeframe,
             start=start,
@@ -214,7 +181,12 @@ class BrokerConnector:
             limit=limit
         )
         try:
-            bars = self.historical_client.get_stock_bars(request_params)
+            bars = self.historical_client.get_crypto_bars(request_params)
+            if not bars.df.empty:
+                if bars.df.index.tz is None:
+                    bars.df = bars.df.tz_localize(pytz.UTC)
+                else:
+                    bars.df = bars.df.tz_convert(pytz.UTC)
             return bars.df
         except APIError as e:
             logger.error(f"Error retrieving historical bars for {symbol}: {e}")

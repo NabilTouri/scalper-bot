@@ -10,7 +10,7 @@ API_SECRET_KEY = os.getenv("APCA_API_SECRET_KEY")
 BASE_URL = os.getenv("APCA_API_BASE_URL", "https://paper-api.alpaca.markets")
 
 # Impostazioni di trading
-SYMBOLS = ["SPY", "QQQ"]  # Esempio di simboli da tradare
+SYMBOLS = os.getenv("SYMBOLS", "BTC/USD").split(",")  # Lista di simboli separati da virgola
 TIMEFRAME = "1Min"  # Esempio di timeframe
 
 # Impostazioni Telegram (opzionale)

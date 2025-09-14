@@ -3,7 +3,7 @@
 from typing import Dict
 from trading.broker_connector import BrokerConnector
 from utils.logger import logger
-from alpaca_trade_api.rest import Position
+from alpaca.rest import Position
 
 class PositionManager:
     def __init__(self, connector: BrokerConnector):

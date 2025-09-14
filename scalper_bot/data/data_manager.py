@@ -1,5 +1,3 @@
-# bot_trading_project/data/data_manager.py
-
 import pandas as pd
 from typing import Dict, List
 from trading.broker_connector import BrokerConnector

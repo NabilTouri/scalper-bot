@@ -13,7 +13,6 @@ def signal_handler(sig, frame):
     logger.info("Shutdown signal received...")
     shutdown_event.set()
 
-
 async def main():
     logger.info("Avvio del bot...")
 
@@ -28,25 +27,16 @@ async def main():
     if not account_info:
         logger.error("Impossibile ottenere informazioni sull'account. Uscita.")
         return
-
-    # Check market status
-    try:
-        clock = broker.trading_client.get_clock()
-        logger.info(f"Market is {'OPEN' if clock.is_open else 'CLOSED'}")
-        logger.info(f"Next market open: {clock.next_open}")
-        logger.info(f"Next market close: {clock.next_close}")
-    except Exception as e:
-        logger.error(f"Error getting clock info: {e}")
+    else:
+        logger.info(f"Account Info: Status = {account_info.status.value}, Equity = ${account_info.equity}, Cash = ${account_info.cash}")
 
     # Esempio di utilizzo: connettersi allo stream e ricevere dati
     async def simple_data_handler(bar):
-        logger.info(f"Nuova barra ricevuta per {bar.symbol}: Open=${bar.open}, Close=${bar.close}, Volume={bar.volume}")
-
-    symbols_to_trade = ["SPY"]  # Esempio di simboli da tradare
+        logger.info(f"Nuova barra ricevuta per {bar.symbol}: Open = ${bar.open}, Close = ${bar.close}, Volume = {bar.volume}")
 
     try:
         # Avvia lo stream di dati
-        await broker.connect_stream(simple_data_handler, symbols_to_trade)
+        await broker.connect_stream(simple_data_handler)
 
         # Keep the bot running and listening for data
         logger.info("Bot running... Press Ctrl+C to stop")
