@@ -6,7 +6,7 @@ from alpaca.data.historical import CryptoHistoricalDataClient
 from alpaca.data.requests import CryptoBarsRequest, CryptoLatestBarRequest
 from alpaca.data.timeframe import TimeFrame
 from alpaca.common.exceptions import APIError
-from ..config.settings import API_KEY_ID, API_SECRET_KEY, SYMBOLS
+from ..config.settings import ALPACA_API_KEY_ID, ALPACA_API_SECRET_KEY, SYMBOLS
 from ..utils.logger import logger
 import pandas as pd
 import asyncio
@@ -20,9 +20,9 @@ class BrokerConnector:
         Initializes the BrokerConnector.
         :param paper: If True, connects to the paper trading environment.
         """
-        self.trading_client = TradingClient(API_KEY_ID, API_SECRET_KEY, paper=paper)
+        self.trading_client = TradingClient(ALPACA_API_KEY_ID, ALPACA_API_SECRET_KEY, paper=paper)
         self.data_stream = None
-        self.historical_client = CryptoHistoricalDataClient(API_KEY_ID, API_SECRET_KEY)
+        self.historical_client = CryptoHistoricalDataClient(ALPACA_API_KEY_ID, ALPACA_API_SECRET_KEY)
         self.stream_task = None
         self.is_streaming = False
         self.simulation_task = None
@@ -46,7 +46,7 @@ class BrokerConnector:
         logger.info(f"Starting CryptoDataStream for symbols: {SYMBOLS}")
 
 
-        self.data_stream = CryptoDataStream(API_KEY_ID, API_SECRET_KEY)
+        self.data_stream = CryptoDataStream(ALPACA_API_KEY_ID, ALPACA_API_SECRET_KEY)
 
         if hasattr(self.data_stream, "subscribe_bars"):
             subscribe_fn = self.data_stream.subscribe_bars

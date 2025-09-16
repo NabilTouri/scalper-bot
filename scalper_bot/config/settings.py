@@ -5,9 +5,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Credenziali API Alpaca
-API_KEY_ID = os.getenv("APCA_API_KEY_ID")
-API_SECRET_KEY = os.getenv("APCA_API_SECRET_KEY")
-BASE_URL = os.getenv("APCA_API_BASE_URL", "https://paper-api.alpaca.markets")
+ALPACA_API_KEY_ID = os.getenv("ALPACA_API_KEY_ID")
+ALPACA_API_SECRET_KEY = os.getenv("ALPACA_API_SECRET_KEY")
+ALPACA_API_BASE_URL = os.getenv("ALPACA_API_BASE_URL", "https://paper-api.alpaca.markets/v2")
 
 # Impostazioni di trading
 SYMBOLS = os.getenv("SYMBOLS", "BTC/USD").split(",")  # Lista di simboli separati da virgola
