@@ -1,6 +1,6 @@
 # bot_trading_project/trading/order_manager.py
 
-from trading.broker_connector import BrokerConnector
+from scalper_bot.trading.connector import BrokerConnector
 from config.settings import TRADE_ENABLED
 from utils.logger import logger
 

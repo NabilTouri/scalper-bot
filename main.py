@@ -1,5 +1,5 @@
 from scalper_bot.utils.logger import logger
-from scalper_bot.trading.broker_connector import BrokerConnector
+from scalper_bot.trading.connector import Connector
 import asyncio
 import signal
 import sys
@@ -20,23 +20,20 @@ async def main():
     signal.signal(signal.SIGINT, signal_handler)
 
     # Inizializza il connettore del broker
-    broker = BrokerConnector()
+    connector = Connector()
 
     # Controlla lo stato dell'account
-    account_info = broker.get_account_info()
+    account_info = connector.get_account_info()
     if not account_info:
         logger.error("Impossibile ottenere informazioni sull'account. Uscita.")
         return
     else:
         logger.info(f"Account Info: Status = {account_info.status.value}, Equity = ${account_info.equity}, Cash = ${account_info.cash}")
 
-    # Esempio di utilizzo: connettersi allo stream e ricevere dati
-    async def simple_data_handler(bar):
-        logger.info(f"Nuova barra ricevuta per {bar.symbol}: Open = ${bar.open}, Close = ${bar.close}, Volume = {bar.volume}")
 
     try:
         # Avvia lo stream di dati
-        await broker.connect_stream(simple_data_handler)
+        await connector.stream()
 
         # Keep the bot running and listening for data
         logger.info("Bot running... Press Ctrl+C to stop")
@@ -50,7 +47,7 @@ async def main():
     finally:
         # Disconnetti lo stream quando il bot si ferma
         logger.info("Shutting down bot...")
-        await broker.disconnect_stream()
+        await connector.disconnect()
         logger.info("Bot terminato.")
 
 

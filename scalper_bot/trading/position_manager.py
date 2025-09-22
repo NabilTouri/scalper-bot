@@ -1,7 +1,7 @@
 # bot_trading_project/trading/position_manager.py
 
 from typing import Dict
-from trading.broker_connector import BrokerConnector
+from scalper_bot.trading.connector import BrokerConnector
 from utils.logger import logger
 from alpaca.rest import Position
 

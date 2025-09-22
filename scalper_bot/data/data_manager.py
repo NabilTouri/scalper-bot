@@ -1,6 +1,6 @@
 import pandas as pd
 from typing import Dict, List
-from trading.broker_connector import BrokerConnector
+from scalper_bot.trading.connector import BrokerConnector
 from config.settings import SYMBOLS, TIMEFRAME
 from utils.logger import logger
 

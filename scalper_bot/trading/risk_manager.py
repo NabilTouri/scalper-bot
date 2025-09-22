@@ -1,7 +1,7 @@
 # bot_trading_project/trading/risk_manager.py
 
 from typing import Optional
-from trading.broker_connector import BrokerConnector
+from scalper_bot.trading.connector import BrokerConnector
 from trading.position_manager import PositionManager
 from config.settings import (
     STOP_LOSS_PERCENT, TAKE_PROFIT_PERCENT, MAX_DAILY_DRAWDOWN_PERCENT,
